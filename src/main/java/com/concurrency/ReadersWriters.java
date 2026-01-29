@@ -1,6 +1,6 @@
 package com.concurrency;
 
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 /*
   Monitor-based solution to the Readers–Writers problem.
@@ -30,7 +30,7 @@ public class ReadersWriters {
 class ReadersWritersMonitor {
     private int readers = 0;
     private boolean writerActive = false;
-    private int data = 0; // Shared resource
+    private volatile int data = 0; // Shared resource (volatile for visibility)
 
     public synchronized void startRead(String name) throws InterruptedException {
         while (writerActive) wait();
@@ -63,7 +63,7 @@ class ReadersWritersMonitor {
 class Reader implements Runnable {
     private final ReadersWritersMonitor monitor;
     private final String name;
-    private final Random rand = new Random();
+    
 
     public Reader(ReadersWritersMonitor monitor, String name) {
         this.monitor = monitor;
@@ -76,9 +76,9 @@ class Reader implements Runnable {
             while (true) {
                 monitor.startRead(name);
                 System.out.println(name + " reads value: " + monitor.readData());
-                Thread.sleep(rand.nextInt(500) + 100);
+                Thread.sleep(ThreadLocalRandom.current().nextInt(500) + 100);
                 monitor.endRead(name);
-                Thread.sleep(rand.nextInt(1000));
+                Thread.sleep(ThreadLocalRandom.current().nextInt(1000));
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -90,7 +90,7 @@ class Reader implements Runnable {
 class Writer implements Runnable {
     private final ReadersWritersMonitor monitor;
     private final String name;
-    private final Random rand = new Random();
+    
 
     public Writer(ReadersWritersMonitor monitor, String name) {
         this.monitor = monitor;
@@ -102,12 +102,12 @@ class Writer implements Runnable {
         try {
             while (true) {
                 monitor.startWrite(name);
-                int value = rand.nextInt(100);
+                int value = ThreadLocalRandom.current().nextInt(100);
                 monitor.writeData(value);
                 System.out.println(name + " writes value: " + value);
-                Thread.sleep(rand.nextInt(500) + 100);
+                Thread.sleep(ThreadLocalRandom.current().nextInt(500) + 100);
                 monitor.endWrite(name);
-                Thread.sleep(rand.nextInt(1000));
+                Thread.sleep(ThreadLocalRandom.current().nextInt(1000));
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
