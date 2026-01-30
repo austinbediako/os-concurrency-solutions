@@ -5,7 +5,7 @@
 This project is a **concurrency and synchronization simulator** developed as part of the Operating Systems course.  
 It demonstrates how operating systems manage **multiple concurrent threads**, **shared resources**, and **synchronization** using classic concurrency problems.
 
-The system provides **deadlock-free solutions** to well-known synchronization problems and visually demonstrates **process/thread states and resource usage** through console output.
+The system provides **deadlock-free solutions** to well-known synchronization problems and visually demonstrates **process/thread states and resource usage** through both **Console Output** and a **JavaFX GUI**.
 
 ---
 
@@ -42,17 +42,20 @@ The main objectives of this project are to:
 - Shared bounded buffer
 - Prevents buffer overflow and underflow
 - Uses **mutex locks** and **condition variables**
+- **GUI**: Visualizes buffer filling/emptying and producer/consumer states (Working/Waiting).
 
 ### 2️. Dining Philosophers Problem
 - Philosophers competing for shared forks
 - Demonstrates deadlock scenarios and deadlock-free solutions
-- Uses **semaphores** and resource ordering
+- Uses **semaphores** and resource ordering (Resource Hierarchy)
+- **GUI**: Visualizes philosophers sitting at a table, changing color based on state (Thinking, Hungry, Eating) and fork usage.
 
 ### 3️. Readers–Writers Problem
 - Manages concurrent access to shared data
 - Multiple readers or one writer at a time
 - Demonstrates fairness and priority control
-- Uses **read-write locks / semaphores**
+- Uses **Monitors (synchronized/wait/notify)**
+- **GUI**: Visualizes readers and writers accessing a central shared resource.
 
 ---
 
@@ -62,7 +65,10 @@ The main objectives of this project are to:
 OSConcurrency/
 │
 ├── Main.java
-│   └── Application entry point and menu controller
+│   └── Console application entry point
+│
+├── com.concurrency.gui.ConcurrencyVisualizerApp
+│   └── JavaFX GUI application entry point
 │
 ├── ProducerConsumer.java
 │   └── Producer–Consumer problem implementation
@@ -90,44 +96,57 @@ OSConcurrency/
     - `Semaphore`
     - `Lock`
     - `Condition`
-- **Platform:** Console-based
+- **UI Framework:** JavaFX
+- **Platform:** Console-based or Desktop GUI
+
 ---
 
-##  Program Flow
+##  How to Run
+
+### Console Mode
+To run the standard console-based simulation:
+```bash
+mvn compile
+java -cp target/classes com.concurrency.Main
 ```
-1. Run Producer–Consumer Simulation
-2. Run Dining Philosophers Simulation
-3. Run Readers–Writers Simulation
-4. Exit
+
+### GUI Mode
+To run the JavaFX visualizer:
+```bash
+mvn compile
+mvn javafx:run
+# OR if using the shade plugin or direct class run:
+java --module-path /path/to/javafx/lib --add-modules javafx.controls,javafx.fxml -cp target/classes com.concurrency.gui.ConcurrencyVisualizerApp
 ```
+*Note: Ensure you have a compatible JavaFX runtime if running directly with java command on JDK 11+.*
 
 ---
 
 ##  Visualization & Output
-Console-based logs show:
-- Thread actions
-- Resource usage
-- Waiting and signaling
-- Execution states
 
-Example:
+### Console
+Logs show thread actions, resource usage, and wait states.
 ```
-Producer-1 produced item
-Consumer-2 consumed item
-Buffer size: 3
+Producer-1 produced: 45 | Buffer size: 3
+Consumer-2 consumed: 45 | Buffer size: 2
 ```
+
+### GUI
+- **Color Semantics**:
+    - **Green**: Working / Eating / Producing / Consuming / Reading
+    - **Orange**: Waiting / Hungry
+    - **Blue**: Idle / Thinking
+    - **Red**: Writing / Fork Taken
+    - **Purple**: Buffer Slot Full
 
 ---
 
 ##  Performance Measurement
 - Execution time
 - Waiting time
-- Throughput
+- Throughput (Operations per second)
 
-Measured using:
-```java
-System.nanoTime()
-```
+Measured using `System.nanoTime()` and displayed in the GUI's Metrics Panel.
 
 ---
 
@@ -140,8 +159,6 @@ System.nanoTime()
 | Ebenezer Fuachie | Readers–Writers |
 | Jessy Kankam Yeboah | Integration & Performance |
 
-
-
 ---
 
 ##  Testing Strategy
@@ -149,18 +166,9 @@ System.nanoTime()
 - Multiple-thread simulations
 - Edge case validation
 - Log-based verification
+- **Unit Tests**: Run `mvn test` to verify logic correctness.
 
 ---
-
-##  Documentation
-- Well-commented source code
-- This README
-- 10-page technical report
-
----
-
-
-
 
 ##  Conclusion
-This project demonstrates practical understanding of **Operating Systems concurrency concepts** through clean, deadlock-free implementations and structured performance evaluation.
+This project demonstrates practical understanding of **Operating Systems concurrency concepts** through clean, deadlock-free implementations and structured performance evaluation, enhanced by a real-time visualization tool.

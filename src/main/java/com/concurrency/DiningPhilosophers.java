@@ -5,8 +5,14 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.concurrency.gui.VisualizationObserver;
+
 public class DiningPhilosophers {
     public static void run(long durationMillis) {
+        run(durationMillis, null);
+    }
+
+    public static void run(long durationMillis, VisualizationObserver observer) {
         PerformanceMetrics metrics = new PerformanceMetrics();
         int numPhilosophers = 5;
         Semaphore[] forks = new Semaphore[numPhilosophers];
@@ -18,7 +24,7 @@ public class DiningPhilosophers {
         SimulationState state = new SimulationState();
 
         for (int i = 0; i < numPhilosophers; i++) {
-            Philosopher p = new Philosopher(i, forks, state, metrics);
+            Philosopher p = new Philosopher(i, forks, state, metrics, observer);
             Thread t = new Thread(p, "Philosopher-" + (i + 1));
             threads.add(t);
             t.start();
@@ -60,12 +66,14 @@ class Philosopher implements Runnable {
     private final Semaphore[] forks;
     private final SimulationState state;
     private final PerformanceMetrics metrics;
+    private final VisualizationObserver observer;
 
-    public Philosopher(int id, Semaphore[] forks, SimulationState state, PerformanceMetrics metrics) {
+    public Philosopher(int id, Semaphore[] forks, SimulationState state, PerformanceMetrics metrics, VisualizationObserver observer) {
         this.id = id;
         this.forks = forks;
         this.state = state;
         this.metrics = metrics;
+        this.observer = observer;
     }
 
     @Override
@@ -80,13 +88,16 @@ class Philosopher implements Runnable {
         try {
             while (state.running && !Thread.currentThread().isInterrupted()) {
                 // Think
+                if (observer != null) observer.onPhilosopherState(id, "THINKING");
                 System.out.println("Philosopher " + (id + 1) + " is thinking.");
                 Thread.sleep(ThreadLocalRandom.current().nextInt(100) + 50);
 
                 // Hungry
+                if (observer != null) observer.onPhilosopherState(id, "HUNGRY");
                 long startWait = System.nanoTime();
 
                 forks[firstFork].acquire();
+                if (observer != null) observer.onForkUpdate(firstFork, true);
                 // Check interrupt/running status?
                 // If interrupted during acquire, it throws InterruptedException.
                 // If we proceed, we have the lock.
@@ -94,19 +105,23 @@ class Philosopher implements Runnable {
                 // We must use try-finally to ensure release
                 try {
                     forks[secondFork].acquire();
+                    if (observer != null) observer.onForkUpdate(secondFork, true);
                     try {
                         long endWait = System.nanoTime();
                         metrics.recordWaitTime(endWait - startWait);
 
                         // Eat
+                        if (observer != null) observer.onPhilosopherState(id, "EATING");
                         System.out.println("Philosopher " + (id + 1) + " is eating.");
                         metrics.addOperation();
                         Thread.sleep(ThreadLocalRandom.current().nextInt(100) + 50);
                     } finally {
                         forks[secondFork].release();
+                        if (observer != null) observer.onForkUpdate(secondFork, false);
                     }
                 } finally {
                     forks[firstFork].release();
+                    if (observer != null) observer.onForkUpdate(firstFork, false);
                 }
             }
         } catch (InterruptedException e) {
