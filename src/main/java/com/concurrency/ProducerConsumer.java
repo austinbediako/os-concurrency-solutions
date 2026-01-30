@@ -9,10 +9,16 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.concurrency.gui.VisualizationObserver;
+
 public class ProducerConsumer {
     public static void run(long durationMillis) {
+        run(durationMillis, null);
+    }
+
+    public static void run(long durationMillis, VisualizationObserver observer) {
         PerformanceMetrics metrics = new PerformanceMetrics();
-        Buffer buffer = new Buffer(5, metrics); // Capacity 5
+        Buffer buffer = new Buffer(5, metrics, observer); // Capacity 5
         List<Thread> threads = new ArrayList<>();
 
         for (int i = 1; i <= 2; i++) {
@@ -46,14 +52,21 @@ class Buffer {
     private final Condition notFull = lock.newCondition();
     private final Condition notEmpty = lock.newCondition();
     private final PerformanceMetrics metrics;
+    private final VisualizationObserver observer;
     private volatile boolean running = true;
 
     public Buffer(int capacity, PerformanceMetrics metrics) {
+        this(capacity, metrics, null);
+    }
+
+    public Buffer(int capacity, PerformanceMetrics metrics, VisualizationObserver observer) {
         this.capacity = capacity;
         this.metrics = metrics;
+        this.observer = observer;
     }
 
     public void produce(String name) throws InterruptedException {
+        if (observer != null) observer.onProducerState(name, "WAITING");
         long startWait = System.nanoTime();
         lock.lock();
         try {
@@ -63,17 +76,22 @@ class Buffer {
             if (!running) throw new InterruptedException();
             metrics.recordWaitTime(System.nanoTime() - startWait);
 
+            if (observer != null) observer.onProducerState(name, "PRODUCING");
             int value = ThreadLocalRandom.current().nextInt(100);
             queue.add(value);
             System.out.println(name + " produced: " + value + " | Buffer size: " + queue.size());
+            if (observer != null) observer.onBufferUpdate(queue.size(), capacity);
+
             metrics.addOperation();
             notEmpty.signal();
         } finally {
             lock.unlock();
+            if (observer != null) observer.onProducerState(name, "IDLE");
         }
     }
 
     public void consume(String name) throws InterruptedException {
+        if (observer != null) observer.onConsumerState(name, "WAITING");
         long startWait = System.nanoTime();
         lock.lock();
         try {
@@ -83,12 +101,16 @@ class Buffer {
             if (!running) throw new InterruptedException();
             metrics.recordWaitTime(System.nanoTime() - startWait);
 
+            if (observer != null) observer.onConsumerState(name, "CONSUMING");
             int value = queue.poll();
             System.out.println(name + " consumed: " + value + " | Buffer size: " + queue.size());
+            if (observer != null) observer.onBufferUpdate(queue.size(), capacity);
+
             metrics.addOperation();
             notFull.signal();
         } finally {
             lock.unlock();
+            if (observer != null) observer.onConsumerState(name, "IDLE");
         }
     }
 
