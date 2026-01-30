@@ -1,6 +1,8 @@
 package com.concurrency;
 
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.ArrayList;
+import java.util.List;
 
 /*
   Monitor-based solution to the Readers–Writers problem.
@@ -11,18 +13,42 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class ReadersWriters {
 
-    public static void run() {
-        ReadersWritersMonitor monitor = new ReadersWritersMonitor();
+    public static void run(long durationMillis) {
+        PerformanceMetrics metrics = new PerformanceMetrics();
+        ReadersWritersMonitor monitor = new ReadersWritersMonitor(metrics);
+        List<Thread> threads = new ArrayList<>();
 
         // Start reader threads
         for (int i = 1; i <= 3; i++) {
-            new Thread(new Reader(monitor, "Reader-" + i)).start();
+            Thread t = new Thread(new Reader(monitor, "Reader-" + i));
+            threads.add(t);
+            t.start();
         }
 
         // Start writer threads
         for (int i = 1; i <= 2; i++) {
-            new Thread(new Writer(monitor, "Writer-" + i)).start();
+            Thread t = new Thread(new Writer(monitor, "Writer-" + i));
+            threads.add(t);
+            t.start();
         }
+
+        metrics.start();
+        try {
+            Thread.sleep(durationMillis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        monitor.stop();
+        for (Thread t : threads) {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        metrics.stop();
+        metrics.printMetrics("Readers-Writers");
     }
 }
 
@@ -31,9 +57,19 @@ class ReadersWritersMonitor {
     private int readers = 0;
     private boolean writerActive = false;
     private volatile int data = 0; // Shared resource (volatile for visibility)
+    private final PerformanceMetrics metrics;
+    private volatile boolean running = true;
+
+    public ReadersWritersMonitor(PerformanceMetrics metrics) {
+        this.metrics = metrics;
+    }
 
     public synchronized void startRead(String name) throws InterruptedException {
-        while (writerActive) wait();
+        long startWait = System.nanoTime();
+        while (writerActive && running) wait();
+        if (!running) throw new InterruptedException();
+        metrics.recordWaitTime(System.nanoTime() - startWait);
+
         readers++;
         System.out.println(name + " started reading. Readers = " + readers);
     }
@@ -41,11 +77,16 @@ class ReadersWritersMonitor {
     public synchronized void endRead(String name) {
         readers--;
         System.out.println(name + " finished reading. Readers = " + readers);
+        metrics.addOperation();
         if (readers == 0) notifyAll();
     }
 
     public synchronized void startWrite(String name) throws InterruptedException {
-        while (writerActive || readers > 0) wait();
+        long startWait = System.nanoTime();
+        while ((writerActive || readers > 0) && running) wait();
+        if (!running) throw new InterruptedException();
+        metrics.recordWaitTime(System.nanoTime() - startWait);
+
         writerActive = true;
         System.out.println(name + " started writing.");
     }
@@ -53,11 +94,21 @@ class ReadersWritersMonitor {
     public synchronized void endWrite(String name) {
         writerActive = false;
         System.out.println(name + " finished writing.");
+        metrics.addOperation();
         notifyAll();
     }
 
     public int readData() { return data; }
     public void writeData(int value) { data = value; }
+
+    public synchronized void stop() {
+        running = false;
+        notifyAll();
+    }
+
+    public boolean isRunning() {
+        return running;
+    }
 }
 
 class Reader implements Runnable {
@@ -73,16 +124,16 @@ class Reader implements Runnable {
     @Override
     public void run() {
         try {
-            while (true) {
+            while (monitor.isRunning()) {
                 monitor.startRead(name);
                 System.out.println(name + " reads value: " + monitor.readData());
-                Thread.sleep(ThreadLocalRandom.current().nextInt(500) + 100);
+                Thread.sleep(ThreadLocalRandom.current().nextInt(100) + 50); // Reduced sleep for better throughput demo
                 monitor.endRead(name);
-                Thread.sleep(ThreadLocalRandom.current().nextInt(1000));
+                Thread.sleep(ThreadLocalRandom.current().nextInt(200));
             }
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            System.out.println(name + " interrupted.");
+            // Thread.currentThread().interrupt(); // Don't interrupt, just exit
+            System.out.println(name + " stopped.");
         }
     }
 }
@@ -100,19 +151,18 @@ class Writer implements Runnable {
     @Override
     public void run() {
         try {
-            while (true) {
+            while (monitor.isRunning()) {
                 monitor.startWrite(name);
                 int value = ThreadLocalRandom.current().nextInt(100);
                 monitor.writeData(value);
                 System.out.println(name + " writes value: " + value);
-                Thread.sleep(ThreadLocalRandom.current().nextInt(500) + 100);
+                Thread.sleep(ThreadLocalRandom.current().nextInt(100) + 50);
                 monitor.endWrite(name);
-                Thread.sleep(ThreadLocalRandom.current().nextInt(1000));
+                Thread.sleep(ThreadLocalRandom.current().nextInt(200));
             }
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            System.out.println(name + " interrupted.");
+            // Thread.currentThread().interrupt();
+            System.out.println(name + " stopped.");
         }
     }
 }
-

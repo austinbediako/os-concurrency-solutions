@@ -15,7 +15,7 @@ public class ReadersWritersTest {
     class MonitorBehavior {
         @Test
         public void testWriterWaitsForReaders() throws Exception {
-            ReadersWritersMonitor monitor = new ReadersWritersMonitor();
+            ReadersWritersMonitor monitor = new ReadersWritersMonitor(new PerformanceMetrics());
 
             CountDownLatch readerEntered = new CountDownLatch(1);
             CountDownLatch readerContinue = new CountDownLatch(1);
@@ -71,7 +71,7 @@ public class ReadersWritersTest {
     class ConcurrencyBehavior {
         @Test
         public void testMultipleReadersConcurrent() throws Exception {
-            ReadersWritersMonitor monitor = new ReadersWritersMonitor();
+            ReadersWritersMonitor monitor = new ReadersWritersMonitor(new PerformanceMetrics());
 
             final int readersCount = 3;
             CountDownLatch startLatch = new CountDownLatch(1);
@@ -112,7 +112,7 @@ public class ReadersWritersTest {
 
         @Test
         public void testNewReadersAllowedWhileWriterWaiting() throws Exception {
-            ReadersWritersMonitor monitor = new ReadersWritersMonitor();
+            ReadersWritersMonitor monitor = new ReadersWritersMonitor(new PerformanceMetrics());
 
             CountDownLatch readerEntered = new CountDownLatch(1);
             CountDownLatch writerTrying = new CountDownLatch(1);

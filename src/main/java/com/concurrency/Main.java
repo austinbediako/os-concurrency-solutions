@@ -7,6 +7,7 @@ public class Main {
     public static void main(String[] args) {
         try (Scanner scanner = new Scanner(System.in)) {
             int choice = -1;
+            long simulationDuration = 5000; // 5 seconds
 
             while (choice != 0) {
                 System.out.println("\nOS Concurrency Simulation Menu");
@@ -25,16 +26,16 @@ public class Main {
 
                 switch (choice) {
                     case 1:
-                        System.out.println("\n Producer-Consumer Simulation is not implemented yet.");
+                        System.out.println("\nRunning Producer-Consumer Simulation for " + (simulationDuration/1000) + " seconds...");
+                        ProducerConsumer.run(simulationDuration);
                         break;
                     case 2:
-                        System.out.println("\n Dining Philosophers Simulation is not implemented yet.");
+                        System.out.println("\nRunning Dining Philosophers Simulation for " + (simulationDuration/1000) + " seconds...");
+                        DiningPhilosophers.run(simulationDuration);
                         break;
                     case 3:
-                        System.out.println("Running Readers-Writers Simulation...");
-                        System.out.flush();
-                        try { Thread.sleep(300); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-                        ReadersWriters.run(); // implemented module
+                        System.out.println("\nRunning Readers-Writers Simulation for " + (simulationDuration/1000) + " seconds...");
+                        ReadersWriters.run(simulationDuration);
                         break;
                     case 0:
                         System.out.println("Exiting program... \nGoodbye!");
@@ -46,4 +47,3 @@ public class Main {
         }
     }
 }
-
