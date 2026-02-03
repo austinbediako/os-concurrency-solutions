@@ -1,5 +1,7 @@
 package com.concurrency;
 
+import com.concurrency.gui.SimulationConfig;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -10,6 +12,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ReadersWritersTest {
+
+    @BeforeAll
+    static void setupFastSimulation() {
+        // Speed up simulation for tests (50ms delay = fast)
+        SimulationConfig.getInstance().setDelay(50);
+    }
 
     @Nested
     class MonitorBehavior {
@@ -51,7 +59,8 @@ public class ReadersWritersTest {
             writer.start();
 
             // writer should NOT acquire the write lock while reader holds it
-            assertFalse(writerAcquired.await(500, TimeUnit.MILLISECONDS), "Writer acquired lock while reader was active");
+            assertFalse(writerAcquired.await(500, TimeUnit.MILLISECONDS),
+                    "Writer acquired lock while reader was active");
 
             // allow reader to finish
             readerContinue.countDown();
@@ -162,7 +171,8 @@ public class ReadersWritersTest {
             r2.start();
 
             // Current monitor allows new readers to enter even while a writer is waiting
-            assertTrue(secondReaderEntered.await(1, TimeUnit.SECONDS), "Second reader could not enter while writer waiting");
+            assertTrue(secondReaderEntered.await(1, TimeUnit.SECONDS),
+                    "Second reader could not enter while writer waiting");
 
             r1.interrupt();
             writer.interrupt();

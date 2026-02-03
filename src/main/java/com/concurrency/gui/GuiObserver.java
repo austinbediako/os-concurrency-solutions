@@ -3,14 +3,19 @@ package com.concurrency.gui;
 import javafx.application.Platform;
 
 /**
- * Implementation of VisualizationObserver that updates the GUI on the JavaFX Application Thread.
+ * Implementation of VisualizationObserver that updates the GUI on the JavaFX
+ * Application Thread.
+ * 
+ * Design Note: All methods are called from background simulation threads.
+ * Platform.runLater() ensures UI updates happen on the correct thread.
  */
 public class GuiObserver implements VisualizationObserver {
 
-    // We will inject View controllers here later via setters or constructor
     private ProducerConsumerView pcView;
     private DiningPhilosophersView dpView;
     private ReadersWritersView rwView;
+    @SuppressWarnings("unused") // Reserved for future metrics integration
+    private MetricsPanel metricsPanel;
 
     public void setProducerConsumerView(ProducerConsumerView view) {
         this.pcView = view;
@@ -24,7 +29,12 @@ public class GuiObserver implements VisualizationObserver {
         this.rwView = view;
     }
 
-    // Producer-Consumer
+    public void setMetricsPanel(MetricsPanel panel) {
+        this.metricsPanel = panel;
+    }
+
+    // ========== Producer-Consumer ==========
+
     @Override
     public void onBufferUpdate(int currentSize, int capacity) {
         if (pcView != null) {
@@ -46,7 +56,36 @@ public class GuiObserver implements VisualizationObserver {
         }
     }
 
-    // Dining Philosophers
+    @Override
+    public void onProducedCount(int totalProduced) {
+        if (pcView != null) {
+            Platform.runLater(() -> pcView.updateProducedCount(totalProduced));
+        }
+    }
+
+    @Override
+    public void onConsumedCount(int totalConsumed) {
+        if (pcView != null) {
+            Platform.runLater(() -> pcView.updateConsumedCount(totalConsumed));
+        }
+    }
+
+    @Override
+    public void onWaitingProducers(int count) {
+        if (pcView != null) {
+            Platform.runLater(() -> pcView.updateWaitingProducers(count));
+        }
+    }
+
+    @Override
+    public void onWaitingConsumers(int count) {
+        if (pcView != null) {
+            Platform.runLater(() -> pcView.updateWaitingConsumers(count));
+        }
+    }
+
+    // ========== Dining Philosophers ==========
+
     @Override
     public void onPhilosopherState(int id, String state) {
         if (dpView != null) {
@@ -61,7 +100,22 @@ public class GuiObserver implements VisualizationObserver {
         }
     }
 
-    // Readers-Writers
+    @Override
+    public void onEatCount(int philosopherId, int count) {
+        if (dpView != null) {
+            Platform.runLater(() -> dpView.updateEatCount(philosopherId, count));
+        }
+    }
+
+    @Override
+    public void onWaitingPhilosopher(int philosopherId, boolean waiting) {
+        if (dpView != null) {
+            Platform.runLater(() -> dpView.updateWaitingState(philosopherId, waiting));
+        }
+    }
+
+    // ========== Readers-Writers ==========
+
     @Override
     public void onReaderState(String name, String state) {
         if (rwView != null) {
@@ -80,6 +134,27 @@ public class GuiObserver implements VisualizationObserver {
     public void onResourceState(String state) {
         if (rwView != null) {
             Platform.runLater(() -> rwView.updateResourceState(state));
+        }
+    }
+
+    @Override
+    public void onReaderCounts(int activeReaders, int waitingReaders) {
+        if (rwView != null) {
+            Platform.runLater(() -> rwView.updateReaderCounts(activeReaders, waitingReaders));
+        }
+    }
+
+    @Override
+    public void onWriterCounts(int activeWriters, int waitingWriters) {
+        if (rwView != null) {
+            Platform.runLater(() -> rwView.updateWriterCounts(activeWriters, waitingWriters));
+        }
+    }
+
+    @Override
+    public void onReadWriteTotals(int totalReads, int totalWrites) {
+        if (rwView != null) {
+            Platform.runLater(() -> rwView.updateTotals(totalReads, totalWrites));
         }
     }
 }
